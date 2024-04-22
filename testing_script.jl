@@ -92,6 +92,6 @@ plot(results)
 #         input_cols = [Symbol("Stimt-1"), :Stimt, :post_error],
 #         action_cols = [:log_RT],
 #         n_cores = 1,
-#         n_iterations = 1000,
-#         n_chains = 2,
+#         n_iterations = 2000,
+#         n_chains = 4,
 #     )
