@@ -1,64 +1,97 @@
+### PETER:
+# NEED TO HAVE
+# Check get_surprise for categorical inputs
+# Check set params for regression parameters
+# NICE TO HAVE
+# Fix Categorical GHF pretty print
+# ActionModels -> give inputs as tuples
+
+### FUTURE: MODEL THE BREAK ###
+#      - give a missing input with a time distane, make the time distance a parameter #
 
 
-### PETER: MAKE BETTER VERSION OF STATE_TRANSTIION ###
-### PETER+NAZIA: MAKE ACTION MODEL ###
-
-
-
-#### READ EXAMPLE DATA ####
-
-#### CREATE AGENT ####
-
-#### GIVE AGENTS INPUTS TO TEST ####
-
-#### FIT SINGLE AGENTMMODEL TO DATA AS TEST ####
-
-#### FIT ENTIRE DATASET WITH MULTIPLE PARTICIPANTS AND STATISTICAL MODEL ####
-
-
-
+## READ PACKAGES ##
 using HierarchicalGaussianFiltering
-using ActioModels
+using ActionModels
 using Plots, StatsPlots
+using CSV, DataFrames, Distributions
+using LogExpFunctions
 
-#Initialize HGF
+
+
+######## CREATE AGENT ######
+#Create the action model
+include("custom_action_model.jl")
+
+#Initialize hgf
 config = Dict(
-    "n_categories_from" => 3,
-    "n_categories_to" => 2,
+    "n_categories_from" => 4,
+    "n_categories_to" => 4,
     "include_volatility_parent" => false,
 )
-HGF = premade_hgf("categorical_state_transitions", config)
+hgf = premade_hgf("categorical_state_transitions", config)
 
-#Get all node names
-keys(HGF_test.all_nodes)
+#Agent parameters are regression parameters
+agent_parameters = Dict(
+    "regression_noise" => 0.1,
+    "regression_intercept" => 0.5,
+    "regression_beta_surprise" => 0.1,
+    "regression_beta_expected_uncertainty" => 0.1,
+    "regression_beta_unexpected_uncertainty" => 0.1,
+    "regression_beta_post_error" => 0.1
+)
 
-#See all parameters in the model
-get_parameters(HGF)
+#Create agent
+agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
+
+#See parameters in agent
+get_parameters(agent)
 
 #Set parameter values
 parameters = Dict(
-    "xprob_volatility" => 3
+    "xprob_volatility" => -3,
+    #"regression_noise" => 0.2,
 )
-set_parameters(HGF, parameters)
-
-#Set up inputs, one column per category from, the value is category_to
-test_inputs = [
-    missing missing 2 missing
-    missing 1 missing missing
-    missing missing missing 3
-    missing missing missing missing
-    3 missing missing missing
-]
-
-#Give inputs
-give_inputs!(HGF, test_inputs)
+set_parameters!(hgf, parameters)
 
 #Reset as if it had not seen any inputs
-reset!(HGF)
+reset!(agent)
 
-#Plot beliefs about all categories
-plot_trajectory(HGF, "xcat_4")
-#Plot a predicted specific transition probability
-plot_trajectory(HGF, "xbin_4_4")
-#And its untransformed version
-plot_trajectory(HGF, "xprob_4_4")
+
+### TEST SIMULATION ###
+#Read dataframe
+data = CSV.read("singlesub_sample_data_for_hgf_raw.csv", DataFrame)
+
+#Set up inputs, one column per category from, the value is category_to
+inputs = Array(data[!, [Symbol("Stimt-1"),:Stimt, :post_error]]);
+
+#Give inputs and simulate actions
+reset!(agent)
+actions = give_inputs!(agent, inputs)
+
+#Plot belief trajectories about all categories
+plot_trajectory(agent, "xcat_1")
+
+
+#Estimate a single parameter
+priors = Dict(
+    "xprob_volatility" => Normal(-3, 1),
+    "regression_noise" => LogNormal(0, 1),
+)
+results = fit_model(agent, priors, inputs, actions)
+#Plot the posterior
+plot_parameter_distribution(results, priors)
+plot(results)
+
+
+# results = fit_model(
+#         agent,
+#         priors,
+#         data;
+#         independent_group_cols = [:SID],
+#         input_cols = [Symbol("Stimt-1"), :Stimt, :post_error],
+#         action_cols = [:log_RT],
+#         n_cores = 1,
+#         n_iterations = 1000,
+#         n_chains = 2,
+#     )

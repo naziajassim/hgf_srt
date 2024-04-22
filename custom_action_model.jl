@@ -1,0 +1,81 @@
+######## CREATE ACTION MODEL ########
+function reaction_time_action(agent::Agent, input::Any)
+
+    ### PREPARE INPUT AND UPDATE HGF ###
+
+    #Unpack the input into the observed_category, and whether it's a post-error trial
+    category_from, category_to, post_error_trial = input
+
+    #Create a vector of missing
+    hgf_input = Vector{Union{Missing, Real}}(missing, 4)
+
+    #Set the input to the category we have just transitioned to
+    hgf_input[category_from] = category_to
+
+    #Extract the HGF
+    hgf = agent.substruct
+
+    #Update the hgf
+    update_hgf!(hgf, hgf_input)
+
+    ### GET REACTION TIME ###
+
+    ## Extract relevant nodes ##
+    #Extract the input node for the transition_from
+    uᵢ = hgf.ordered_nodes.input_nodes[category_from]
+    #Get the cateogrical node for that transition_from 
+    cᵢ = uᵢ.edges.observation_parents[1]
+    #Get the binary node tracking the observing that specific transition
+    bᵢⱼ = cᵢ.edges.category_parents[category_to]
+    #Get the continuous HGF node tracking the probability of that transition
+    xᵢⱼ = bᵢⱼ.edges.probability_parents[1]
+    
+    ## Get belief states relevant for the regression ##
+    #Get the suprise for the node
+    #ℑ = get_surprise(uᵢ)
+    ℑ = 0.1
+
+    #Get the posterior mean and precision for the node tracking the probaility of the observed transition
+    μ₂ = get_states(xᵢⱼ, "posterior_mean")
+    π₂ = get_states(xᵢⱼ, "posterior_precision")
+    
+    #Get the belief about the volatility of the probability 
+    μ₃ = 0
+
+    #Use names from the marshall paper 
+    tendency_observed_transition = μ₂
+    expected_uncertainy_observed_transition = 1 / π₂
+
+    #Combine to get overall expected uncertainty
+    expected_uncertainty =  logistic(tendency_observed_transition) *
+                            (1 - logistic(tendency_observed_transition)) *
+                            expected_uncertainy_observed_transition
+
+    ##Combine to get the volatility-dependent Unexpected uncertainty
+    unexpected_uncertainty = logistic(tendency_observed_transition) *
+                             (1 - logistic(tendency_observed_transition)) *
+                             exp(μ₃)
+
+
+    ### REGRESSION ###
+    ## Extract regression parameters ##
+    σ = agent.parameters["regression_noise"]
+    α = agent.parameters["regression_intercept"]
+    β_surprise = agent.parameters["regression_beta_surprise"]
+    β_expected_uncertainy = agent.parameters["regression_beta_expected_uncertainty"]
+    β_unexpected_uncertainty = agent.parameters["regression_beta_unexpected_uncertainty"]
+    β_post_error = agent.parameters["regression_beta_post_error"]
+
+    ## Do the regression ##
+    reaction_time_prediction =  α + 
+                                β_surprise * ℑ + 
+                                β_expected_uncertainy * expected_uncertainty + 
+                                β_unexpected_uncertainty * unexpected_uncertainty + 
+                                β_post_error * post_error_trial
+
+    ## Create final action distribution ##
+    action_distribution = Normal(reaction_time_prediction, σ)
+
+    #Actions should be log reaction times
+    return action_distribution
+end
