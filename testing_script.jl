@@ -2,13 +2,14 @@
 # NEED TO HAVE
 # Check get_surprise for categorical inputs
 # Check set params for regression parameters
+
 # NICE TO HAVE
-# Fix Categorical GHF pretty print
+# Fix Categorical HGF pretty print
 # ActionModels -> give inputs as tuples
+# Parallelization
 
 ### FUTURE: MODEL THE BREAK ###
 #      - give a missing input with a time distane, make the time distance a parameter #
-
 
 ## READ PACKAGES ##
 using HierarchicalGaussianFiltering
@@ -60,7 +61,7 @@ reset!(agent)
 
 ### TEST SIMULATION ###
 #Read dataframe
-data = CSV.read("singlesub_sample_data_for_hgf_raw.csv", DataFrame)
+data = CSV.read("singlesub_sample_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
 
 #Set up inputs, one column per category from, the value is category_to
 inputs = Array(data[!, [Symbol("Stimt-1"),:Stimt, :post_error]]);
@@ -73,10 +74,17 @@ actions = give_inputs!(agent, inputs)
 plot_trajectory(agent, "xcat_1")
 
 
+
+### SINGLE PARTICIPANT PARAMETER ESTIMATION ###
 #Estimate a single parameter
 priors = Dict(
     "xprob_volatility" => Normal(-3, 1),
-    "regression_noise" => LogNormal(0, 1),
+    "regression_noise" => truncated(Normal(0, .5), lower = 0),
+    "regression_intercept" => Normal(-1,1),
+    "regression_beta_surprise" => Normal(0,1),
+    "regression_beta_expected_uncertainty" => Normal(0,1),
+    "regression_beta_unexpected_uncertainty" => Normal(0,1),
+    "regression_beta_post_error" => Normal(0,1),
 )
 results = fit_model(agent, priors, inputs, actions)
 #Plot the posterior
@@ -84,14 +92,29 @@ plot_parameter_distribution(results, priors)
 plot(results)
 
 
-# results = fit_model(
-#         agent,
-#         priors,
-#         data;
-#         independent_group_cols = [:SID],
-#         input_cols = [Symbol("Stimt-1"), :Stimt, :post_error],
-#         action_cols = [:log_RT],
-#         n_cores = 1,
-#         n_iterations = 2000,
-#         n_chains = 4,
-#     )
+
+
+### FULL PARAMETER ESTIMATION ###
+#Read data
+data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
+
+#Subset the data for testing
+filter!(row -> row.SID in [1003, 1047], data)
+#Add a fake post_error column
+data[!,:post_error] = Int64.(ones(nrow(data)))
+
+#Fit the model for each participant
+results = fit_model(
+        agent,
+        priors,
+        data;
+        independent_group_cols = [:SID],
+        input_cols = [Symbol("Stimt-1"), :Stimt, :post_error],
+        action_cols = [:log_RT],
+        n_cores = 1,
+        n_iterations = 200,
+        n_chains = 1,
+    )
+
+plot(results[1047])
+plot_parameter_distribution(results[1003], priors)

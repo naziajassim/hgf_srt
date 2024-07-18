@@ -23,9 +23,9 @@ function reaction_time_action(agent::Agent, input::Any)
     ## Extract relevant nodes ##
     #Extract the input node for the transition_from
     uᵢ = hgf.ordered_nodes.input_nodes[category_from]
-    #Get the cateogrical node for that transition_from 
+    #Get the categorical node for that transition_from 
     cᵢ = uᵢ.edges.observation_parents[1]
-    #Get the binary node tracking the observing that specific transition
+    #Get the binary node tracking the observing for that specific transition
     bᵢⱼ = cᵢ.edges.category_parents[category_to]
     #Get the continuous HGF node tracking the probability of that transition
     xᵢⱼ = bᵢⱼ.edges.probability_parents[1]
@@ -43,17 +43,17 @@ function reaction_time_action(agent::Agent, input::Any)
     μ₃ = 0
 
     #Use names from the marshall paper 
-    tendency_observed_transition = μ₂
+    tendency_observed_transition = logistic(μ₂)
     expected_uncertainy_observed_transition = 1 / π₂
 
     #Combine to get overall expected uncertainty
-    expected_uncertainty =  logistic(tendency_observed_transition) *
-                            (1 - logistic(tendency_observed_transition)) *
+    expected_uncertainty =  tendency_observed_transition *
+                            (1 - tendency_observed_transition) *
                             expected_uncertainy_observed_transition
 
     ##Combine to get the volatility-dependent Unexpected uncertainty
-    unexpected_uncertainty = logistic(tendency_observed_transition) *
-                             (1 - logistic(tendency_observed_transition)) *
+    unexpected_uncertainty = tendency_observed_transition *
+                             (1 - tendency_observed_transition) *
                              exp(μ₃)
 
 
@@ -61,14 +61,14 @@ function reaction_time_action(agent::Agent, input::Any)
     ## Extract regression parameters ##
     σ = agent.parameters["regression_noise"]
     α = agent.parameters["regression_intercept"]
-    β_surprise = agent.parameters["regression_beta_surprise"]
+    βℑ = agent.parameters["regression_beta_surprise"]
     β_expected_uncertainy = agent.parameters["regression_beta_expected_uncertainty"]
     β_unexpected_uncertainty = agent.parameters["regression_beta_unexpected_uncertainty"]
     β_post_error = agent.parameters["regression_beta_post_error"]
 
     ## Do the regression ##
     reaction_time_prediction =  α + 
-                                β_surprise * ℑ + 
+                                βℑ * ℑ + 
                                 β_expected_uncertainy * expected_uncertainty + 
                                 β_unexpected_uncertainty * unexpected_uncertainty + 
                                 β_post_error * post_error_trial
