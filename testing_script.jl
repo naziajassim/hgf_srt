@@ -61,7 +61,7 @@ reset!(agent)
 
 ### TEST SIMULATION ###
 #Read dataframe
-data = CSV.read("singlesub_sample_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
+data = CSV.read("data/singlesub_sample_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
 
 #Set up inputs, one column per category from, the value is category_to
 inputs = Array(data[!, [Symbol("Stimt-1"),:Stimt, :post_error]]);
