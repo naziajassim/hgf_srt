@@ -101,7 +101,7 @@ data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missi
 #Subset the data for testing
 filter!(row -> row.SID in [1003, 1047], data)
 #Add a fake post_error column
-data[!,:post_error] = Int64.(ones(nrow(data)))
+# data[!,:post_error] = Int64.(ones(nrow(data)))
 
 #Fit the model for each participant
 results = fit_model(
