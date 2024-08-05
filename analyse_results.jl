@@ -11,6 +11,9 @@ using Distributed #For parallelization
 results = load_object("results/fitting_results.jld2")
 
 
+
+
+# GET THINGS FROM BEFORE
 priors = Dict(
     "xprob_volatility" => Normal(-3, 1),            # unchanged
     "regression_noise" => truncated(Normal(exp(-3), .5), lower = 0), # unchanged- throws out errors if noise is negative
@@ -22,21 +25,86 @@ priors = Dict(
     "regression_beta_post_reversal" => Normal(0,1.5)           # β5
 )
 
+#Create the action model
+include("custom_action_model.jl")
+
+#Initialize hgf
+config = Dict(
+"n_categories_from" => 4,
+"n_categories_to" => 4,
+"include_volatility_parent" => false,
+)
+hgf = premade_hgf("categorical_state_transitions", config)
+
+#Agent parameters are regression parameters
+agent_parameters = Dict(
+"regression_noise" => 0.1,
+"regression_intercept" => 0.5,
+"regression_beta_surprise" => 0.1,
+"regression_beta_expected_uncertainty" => 0.1,
+"regression_beta_unexpected_uncertainty" => 0.1,
+"regression_beta_post_error" => 0.1,
+"regression_beta_post_reversal" => 0.1
+)
+
+#Create agent
+agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
 
 
+
+#Read data
+data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA");
+
+#Filter for only subject 1043
+data = filter(row -> row.SID == 1043, data);
+
+#Extract inputs
+inputs = Array(data[!, [Symbol("Stimt-1"), :Stimt, :post_error, :post_reversal]]);
+
+
+
+
+
+
+#GET ESTIMATED PARAMETERS
+
+# for (SID, specific_results) in results
+    
+#     posteriors = get_posteriors(specific_results)
+
+#     #put in some dataframe
+
+# end
 
 
 specific_results = results[1003]
+
 plot(specific_results)
 plot_parameter_distribution(specific_results, priors)
 
-posteriors = get_posteriors(specific_results, type = "distribution")
+posteriors_full = get_posteriors(specific_results, type = "distribution")
+# and here this could be put into a dataframe for further analysis
+# in a for loop
+#Or get confidence intervals blabla
+
+
+# SIMULATE BELIEF TRAJECTORIES WITH ESIMTATED PARAMETERS
+
+#Get out posterior estimate medians
 posteriors = get_posteriors(specific_results, type = "median")
 
-for (SID, specific_results) in results
-    
-    posteriors = get_posteriors(specific_results)
+#Set them in the agent
+set_parameters!(agent, posteriors)
+reset!(agent)
 
-    #put in some dataframe
+#Simulate forward with the agent
+give_inputs!(agent, inputs)
 
-end
+#Plot belief trajectories over time
+plot_trajectory(agent, "xcat_1")
+plot_trajectory(agent, "xcat_2")
+plot_trajectory(agent, "xcat_3")
+plot_trajectory(agent, "xcat_4")
+
+#Get out all belief trajectories (beliefs, prediction errors etc)
+histories = get_history(agent)
