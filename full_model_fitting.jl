@@ -39,7 +39,8 @@ addprocs(n_cores, exeflags="--project=.")
     "regression_beta_surprise" => 0.1,
     "regression_beta_expected_uncertainty" => 0.1,
     "regression_beta_unexpected_uncertainty" => 0.1,
-    "regression_beta_post_error" => 0.1
+    "regression_beta_post_error" => 0.1,
+    "regression_beta_post_reversal" => 0.1
     )
 
     #Create agent
@@ -61,13 +62,14 @@ end
 
 ######## FIT TO DATA ######
 priors = Dict(
-    "xprob_volatility" => Normal(-3, 1),
-    "regression_noise" => truncated(Normal(0, .5), lower = 0),
-    "regression_intercept" => Normal(-1,1),
-    "regression_beta_surprise" => Normal(0,1),
-    "regression_beta_expected_uncertainty" => Normal(0,1),
-    "regression_beta_unexpected_uncertainty" => Normal(0,1),
-    "regression_beta_post_error" => Normal(0,1),
+    "xprob_volatility" => Normal(-3, 1),            # unchanged
+    "regression_noise" => truncated(Normal(exp(-3), .5), lower = 0), # unchanged- throws out errors if noise is negative
+    "regression_intercept" => Normal(log(500), 1.7),  # β0 
+    "regression_beta_surprise" => Normal(0,2),            # β1
+    "regression_beta_expected_uncertainty" => Normal(0,2), # β2
+    "regression_beta_unexpected_uncertainty" => Normal(0,2), #β3
+    "regression_beta_post_error" => Normal(0,1.5),           # β4
+    "regression_beta_post_reversal" => Normal(0,1.5)           # β5
 )
 
 #Fit the model for each participant
@@ -76,11 +78,11 @@ results = fit_model(
         priors,
         data;
         independent_group_cols = [:SID],
-        input_cols = [Symbol("Stimt-1"), :Stimt, :post_error],
+        input_cols = [Symbol("Stimt-1"), :Stimt, :post_error, :post_reversal],
         action_cols = [:log_RT],
         n_cores = n_cores,
         n_iterations = 100, #2000
-        n_chains = 2,
+        n_chains = 2, #4
     )
 
 

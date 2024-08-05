@@ -1,7 +1,6 @@
 ### PETER:
 # NEED TO HAVE
 # Check get_surprise for categorical inputs
-# Check set params for regression parameters
 
 # NICE TO HAVE
 # Fix Categorical HGF pretty print
