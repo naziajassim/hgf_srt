@@ -1,8 +1,143 @@
+### A Pluto.jl notebook ###
+# v0.19.45
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ 85c2698a-5307-11ef-2013-d184e504efb7
+#READ PACKAGES
+begin
+	using HierarchicalGaussianFiltering #For the HGF
+	using ActionModels, Distributions, LogExpFunctions #For model specification and fitting
+	using StatsPlots #For plotting
+	using CSV, DataFrames, JLD2 #For loading and saving data
+	using Distributed #For parallelization
+
+	include("custom_action_model.jl");
+end
+
+# ╔═╡ b265d6d6-d9a2-4a1a-9ea6-488ecdb3b2ab
+#GET INPUTS
+begin
+
+	#Read data
+	data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA");
+
+	#Filter for only subject 1043
+	data = filter(row -> row.SID == 1043, data);
+
+	#Extract inputs
+	#inputs = Array(data[!, [Symbol("Stimt-1"), :Stimt, :post_error, :post_reversal]]);
+	
+	inputs = Array(data[!, [Symbol("Stimt-1"), :Stimt]])
+	inputs = Array(hcat(inputs, Int64.(zeros(size(inputs)))))
+
+end
+
+# ╔═╡ c99bf292-a348-4cb3-aad6-771b34be885c
+#CREATE AGENT
+begin
+
+	#Initialize hgf
+    config = Dict(
+    "n_categories_from" => 4,
+    "n_categories_to" => 4,
+    "include_volatility_parent" => false,
+    )
+    hgf = premade_hgf("categorical_state_transitions", config, verbose=false);
+
+    #Agent parameters are regression parameters
+    agent_parameters = Dict(
+    "regression_noise" => 0.1,
+    "regression_intercept" => 0.5,
+    "regression_beta_surprise" => 0.1,
+    "regression_beta_expected_uncertainty" => 0.1,
+    "regression_beta_unexpected_uncertainty" => 0.1,
+    "regression_beta_post_error" => 0.1,
+    "regression_beta_post_reversal" => 0.1
+    )
+
+    #Create agent
+    agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
+
+end
+
+# ╔═╡ 7fa4bf8d-6098-48e2-9ff1-6ca5d8fb48eb
+#SET PARAMETERS
+begin
+	parameters = Dict(
+	    "xprob_volatility" => -10,           
+	    "regression_noise" => exp(-3), 
+	    "regression_intercept" => log(500),
+	    "regression_beta_surprise" => 0,
+	    "regression_beta_expected_uncertainty" => 0,
+	    "regression_beta_unexpected_uncertainty" => 0,
+	    "regression_beta_post_error" => 0,
+	    "regression_beta_post_reversal" => 0,
+	)
+	
+	set_parameters!(agent, parameters)
+
+	reset!(agent)
+end
+
+# ╔═╡ 392e44e4-8b33-47c5-8f8c-cd6b002b4a31
+simulated_actions = give_inputs!(agent, inputs)
+
+# ╔═╡ 44cfab57-5273-4704-a987-5c77f1dff3c8
+plot(
+	plot_trajectory(agent, "xcat_1"),
+	plot_trajectory(agent, "xcat_2"),
+	plot_trajectory(agent, "xcat_3"),
+	plot_trajectory(agent, "xcat_4"),
+)
+
+# ╔═╡ 8ff0bf28-8d58-497a-90d3-ce7200cbb486
+plot_trajectory(agent, "xcat_1")
+
+# ╔═╡ da7f0175-6d5f-4776-83fa-9049e3bba371
+plot_trajectory(agent, "xcat_2")
+
+# ╔═╡ 6e0bc664-8098-4642-83d0-0b06f7626419
+plot_trajectory(agent, "xcat_3")
+
+# ╔═╡ 0540615b-4c19-4f64-b0ba-d0ac0f489068
+plot_trajectory(agent, "xcat_4")
+
+# ╔═╡ 34f8579f-73f9-4e30-9105-d0a8e2bcd639
+plot_trajectory(agent, "action")
+
+# ╔═╡ 00000000-0000-0000-0000-000000000001
+PLUTO_PROJECT_TOML_CONTENTS = """
+[deps]
+ActionModels = "320cf53b-cc3b-4b34-9a10-0ecb113566a3"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+HierarchicalGaussianFiltering = "63d42c3e-681c-42be-892f-a47f35336a79"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
+StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
+
+[compat]
+ActionModels = "~0.5.4"
+CSV = "~0.10.14"
+DataFrames = "~1.6.1"
+Distributions = "~0.25.109"
+HierarchicalGaussianFiltering = "~0.5.2"
+JLD2 = "~0.4.51"
+LogExpFunctions = "~0.3.28"
+StatsPlots = "~0.15.7"
+"""
+
+# ╔═╡ 00000000-0000-0000-0000-000000000002
+PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "e18e9d735e0adc2f96684ee19a47674958c7de72"
+project_hash = "6a5446d7cdbadc1554878fbd9ee175a498a09368"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "6778bcc27496dae5723ff37ee30af451db8b35fe"
@@ -437,12 +572,6 @@ git-tree-sha1 = "ea32b83ca4fefa1768dc84e504cc0a94fb1ab8d1"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.4.2"
 
-[[deps.Configurations]]
-deps = ["ExproniconLite", "OrderedCollections", "TOML"]
-git-tree-sha1 = "4358750bb58a3caefd5f37a4a0c5bfdbbf075252"
-uuid = "5218b696-f38b-4ac9-8b61-a12ec717816d"
-version = "0.17.6"
-
 [[deps.ConsoleProgressMonitor]]
 deps = ["Logging", "ProgressMeter"]
 git-tree-sha1 = "3ab7b2136722890b9af903859afcf457fa3059e8"
@@ -685,21 +814,11 @@ git-tree-sha1 = "27415f162e6028e81c72b82ef756bf321213b6ec"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 version = "0.1.10"
 
-[[deps.ExpressionExplorer]]
-git-tree-sha1 = "0da78bef32ca71276337442389a3d1962a1ee0da"
-uuid = "21656369-7473-754a-2065-74616d696c43"
-version = "1.0.2"
-
 [[deps.Expronicon]]
 deps = ["MLStyle", "Pkg", "TOML"]
 git-tree-sha1 = "fc3951d4d398b5515f91d7fe5d45fc31dccb3c9b"
 uuid = "6b7a57c9-7cc1-4fdf-b7f5-e857abae3636"
 version = "0.8.5"
-
-[[deps.ExproniconLite]]
-git-tree-sha1 = "1095361e35ea8ad9c660560df4c03c06d5244956"
-uuid = "55351af7-c7e9-48d6-89ff-24e801d99491"
-version = "0.10.11"
 
 [[deps.FFMPEG]]
 deps = ["FFMPEG_jll"]
@@ -828,12 +947,6 @@ version = "0.4.12"
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
-[[deps.FuzzyCompletions]]
-deps = ["REPL"]
-git-tree-sha1 = "40ec72c57559a4473961bbcd12c96bcd4c2aaab4"
-uuid = "fb4132e2-a121-4a70-b8a1-d5b831dcdcc2"
-version = "0.5.4"
-
 [[deps.GLFW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Xorg_libXcursor_jll", "Xorg_libXi_jll", "Xorg_libXinerama_jll", "Xorg_libXrandr_jll", "libdecor_jll", "xkbcommon_jll"]
 git-tree-sha1 = "532f9126ad901533af1d4f5c198867227a7bb077"
@@ -916,12 +1029,6 @@ deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
 git-tree-sha1 = "f218fe3736ddf977e0e772bc9a586b2383da2685"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
 version = "0.3.23"
-
-[[deps.HypertextLiteral]]
-deps = ["Tricks"]
-git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
-uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-version = "0.9.5"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
@@ -1170,11 +1277,6 @@ version = "0.16.4"
     DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
     SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
 
-[[deps.LazilyInitializedFields]]
-git-tree-sha1 = "8f7f3cabab0fd1800699663533b6d5cb3fc0e612"
-uuid = "0e77f7df-68c5-4e49-93ce-4cd80f5598bf"
-version = "1.2.2"
-
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
 uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
@@ -1353,11 +1455,6 @@ git-tree-sha1 = "8ba8b1840d3ab5b38e7c71c23c3193bb5cbc02b5"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
 version = "0.3.10"
 
-[[deps.MIMEs]]
-git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
-uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
-version = "0.1.4"
-
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
 git-tree-sha1 = "f046ccd0c6db2832a9f639e2c669c6fe867e5f4f"
@@ -1380,12 +1477,6 @@ deps = ["Markdown", "Random"]
 git-tree-sha1 = "2fa9ee3e63fd3a4f7a9a4f4744a52f4856de82df"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 version = "0.5.13"
-
-[[deps.Malt]]
-deps = ["Distributed", "Logging", "RelocatableFolders", "Serialization", "Sockets"]
-git-tree-sha1 = "18cf4151e390fce29ca846b92b06baf9bc6e002e"
-uuid = "36869731-bdee-424d-aa32-cab38c994e3b"
-version = "1.1.1"
 
 [[deps.ManifoldDiff]]
 deps = ["LinearAlgebra", "ManifoldsBase", "Markdown", "Random", "Requires"]
@@ -1492,12 +1583,6 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2023.1.10"
-
-[[deps.MsgPack]]
-deps = ["Serialization"]
-git-tree-sha1 = "f5db02ae992c260e4826fe78c942954b48e1d9c2"
-uuid = "99f44e22-a591-53d1-9472-aa23ef4bd671"
-version = "1.2.1"
 
 [[deps.MultivariatePolynomials]]
 deps = ["ChainRulesCore", "DataStructures", "LinearAlgebra", "MutableArithmetics"]
@@ -1781,18 +1866,6 @@ version = "1.40.5"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
-[[deps.Pluto]]
-deps = ["Base64", "Configurations", "Dates", "Downloads", "ExpressionExplorer", "FileWatching", "FuzzyCompletions", "HTTP", "HypertextLiteral", "InteractiveUtils", "Logging", "LoggingExtras", "MIMEs", "Malt", "Markdown", "MsgPack", "Pkg", "PlutoDependencyExplorer", "PrecompileSignatures", "PrecompileTools", "REPL", "RegistryInstances", "RelocatableFolders", "Scratch", "Sockets", "TOML", "Tables", "URIs", "UUIDs"]
-git-tree-sha1 = "daa8d3f95b43a2e18c63f7bdbabab4f45f332bac"
-uuid = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
-version = "0.19.45"
-
-[[deps.PlutoDependencyExplorer]]
-deps = ["ExpressionExplorer", "InteractiveUtils", "Markdown"]
-git-tree-sha1 = "4bc5284f77d731196d3e97f23abb732ad6f2a6e4"
-uuid = "72656b73-756c-7461-726b-72656b6b696b"
-version = "1.0.4"
-
 [[deps.Polynomials]]
 deps = ["LinearAlgebra", "RecipesBase", "Requires", "Setfield", "SparseArrays"]
 git-tree-sha1 = "1a9cfb2dc2c2f1bd63f1906d72af39a79b49b736"
@@ -1832,11 +1905,6 @@ weakdeps = ["ReverseDiff"]
 
     [deps.PreallocationTools.extensions]
     PreallocationToolsReverseDiffExt = "ReverseDiff"
-
-[[deps.PrecompileSignatures]]
-git-tree-sha1 = "18ef344185f25ee9d51d80e179f8dad33dc48eb1"
-uuid = "91cefc8d-f054-46dc-8f8c-26e11d7c5411"
-version = "3.0.3"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -1994,12 +2062,6 @@ version = "3.26.0"
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "1.2.2"
-
-[[deps.RegistryInstances]]
-deps = ["LazilyInitializedFields", "Pkg", "TOML", "Tar"]
-git-tree-sha1 = "ffd19052caf598b8653b99404058fce14828be51"
-uuid = "2792f1a3-b283-48e8-9a74-f99dce5104f3"
-version = "0.1.0"
 
 [[deps.RelocatableFolders]]
 deps = ["SHA", "Scratch"]
@@ -2416,11 +2478,6 @@ version = "0.4.82"
     OnlineStatsBase = "925886fa-5bf2-5e8e-b522-a9147a512338"
     Referenceables = "42d2dcc6-99eb-4e98-b66c-637b7d73030e"
 
-[[deps.Tricks]]
-git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
-uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.9"
-
 [[deps.Turing]]
 deps = ["ADTypes", "AbstractMCMC", "Accessors", "AdvancedHMC", "AdvancedMH", "AdvancedPS", "AdvancedVI", "BangBang", "Bijectors", "Compat", "DataStructures", "Distributions", "DistributionsAD", "DocStringExtensions", "DynamicPPL", "EllipticalSliceSampling", "ForwardDiff", "Libtask", "LinearAlgebra", "LogDensityProblems", "LogDensityProblemsAD", "MCMCChains", "NamedArrays", "Optimization", "OptimizationOptimJL", "OrderedCollections", "Printf", "Random", "Reexport", "Requires", "SciMLBase", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
 git-tree-sha1 = "a11ea6fcba56924d2dd151b3ec5a6dd553a3b65c"
@@ -2827,3 +2884,19 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Wayland_jll", "Wayland_prot
 git-tree-sha1 = "9c304562909ab2bab0262639bd4f444d7bc2be37"
 uuid = "d8fb68d0-12a3-5cfd-a85a-d49703b185fd"
 version = "1.4.1+1"
+"""
+
+# ╔═╡ Cell order:
+# ╠═85c2698a-5307-11ef-2013-d184e504efb7
+# ╠═b265d6d6-d9a2-4a1a-9ea6-488ecdb3b2ab
+# ╠═c99bf292-a348-4cb3-aad6-771b34be885c
+# ╠═7fa4bf8d-6098-48e2-9ff1-6ca5d8fb48eb
+# ╠═392e44e4-8b33-47c5-8f8c-cd6b002b4a31
+# ╠═44cfab57-5273-4704-a987-5c77f1dff3c8
+# ╠═8ff0bf28-8d58-497a-90d3-ce7200cbb486
+# ╠═da7f0175-6d5f-4776-83fa-9049e3bba371
+# ╠═6e0bc664-8098-4642-83d0-0b06f7626419
+# ╠═0540615b-4c19-4f64-b0ba-d0ac0f489068
+# ╠═34f8579f-73f9-4e30-9105-d0a8e2bcd639
+# ╟─00000000-0000-0000-0000-000000000001
+# ╟─00000000-0000-0000-0000-000000000002
