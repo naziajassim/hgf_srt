@@ -3,8 +3,8 @@ function reaction_time_action(agent::Agent, input::Any)
 
     ### PREPARE INPUT AND UPDATE HGF ###
 
-    #Unpack the input into the observed_category, and whether it's a post-error trial
-    category_from, category_to, post_error_trial = input
+    #Unpack the input into the observed_category, whether it's a post-error trial, and whether it's post-reversal
+    category_from, category_to, post_error_trial, post_reversal = input
 
     #Create a vector of missing
     hgf_input = Vector{Union{Missing, Real}}(missing, 4)
@@ -65,13 +65,15 @@ function reaction_time_action(agent::Agent, input::Any)
     β_expected_uncertainy = agent.parameters["regression_beta_expected_uncertainty"]
     β_unexpected_uncertainty = agent.parameters["regression_beta_unexpected_uncertainty"]
     β_post_error = agent.parameters["regression_beta_post_error"]
+    β_post_reversal = agent.parameters["regression_beta_post_reversal"]
 
     ## Do the regression ##
     reaction_time_prediction =  α + 
                                 βℑ * ℑ + 
                                 β_expected_uncertainy * expected_uncertainty + 
                                 β_unexpected_uncertainty * unexpected_uncertainty + 
-                                β_post_error * post_error_trial
+                                β_post_error * post_error_trial + 
+                                β_post_reversal * post_reversal
 
     ## Create final action distribution ##
     action_distribution = Normal(reaction_time_prediction, σ)
