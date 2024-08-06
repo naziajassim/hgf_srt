@@ -57,7 +57,7 @@ if subset
     #Subset the data for testing
     filter!(row -> row.SID in [1003, 1047], data);
     #Add a fake post_error column
-    data[!,:post_error] = Int64.(ones(nrow(data)));
+    #data[!,:post_error] = Int64.(ones(nrow(data)));
 end
 
 ######## FIT TO DATA ######
