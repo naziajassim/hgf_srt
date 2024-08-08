@@ -14,6 +14,8 @@ begin
 	using Distributed #For parallelization
 
 	include("custom_action_model.jl");
+
+    agent = create_agent();
 end
 
 # ╔═╡ b265d6d6-d9a2-4a1a-9ea6-488ecdb3b2ab
@@ -31,34 +33,6 @@ begin
 	
 	inputs = Array(data[!, [Symbol("Stimt-1"), :Stimt]])
 	inputs = Array(hcat(inputs, Int64.(zeros(size(inputs)))))
-
-end
-
-# ╔═╡ c99bf292-a348-4cb3-aad6-771b34be885c
-#CREATE AGENT
-begin
-
-	#Initialize hgf
-    config = Dict(
-    "n_categories_from" => 4,
-    "n_categories_to" => 4,
-    "include_volatility_parent" => false,
-    )
-    hgf = premade_hgf("categorical_state_transitions", config, verbose=false);
-
-    #Agent parameters are regression parameters
-    agent_parameters = Dict(
-    "regression_noise" => 0.1,
-    "regression_intercept" => 0.5,
-    "regression_beta_surprise" => 0.1,
-    "regression_beta_expected_uncertainty" => 0.1,
-    "regression_beta_unexpected_uncertainty" => 0.1,
-    "regression_beta_post_error" => 0.1,
-    "regression_beta_post_reversal" => 0.1
-    )
-
-    #Create agent
-    agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
 
 end
 

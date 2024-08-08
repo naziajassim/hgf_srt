@@ -32,8 +32,7 @@ function reaction_time_action(agent::Agent, input::Any)
     
     ## Get belief states relevant for the regression ##
     #Get the suprise for the node
-    #ℑ = get_surprise(uᵢ)
-    ℑ = 0.1
+    ℑ = get_surprise(uᵢ)
 
     #Get the posterior mean and precision for the node tracking the probaility of the observed transition
     μ₂ = get_states(xᵢⱼ, "posterior_mean")
@@ -80,4 +79,33 @@ function reaction_time_action(agent::Agent, input::Any)
 
     #Actions should be log reaction times
     return action_distribution
+end
+
+
+function create_agent()
+    
+    #Initialize hgf
+    config = Dict(
+    "n_categories_from" => 4,
+    "n_categories_to" => 4,
+    "include_volatility_parent" => false,
+    )
+
+    hgf = premade_hgf("categorical_state_transitions", config, verbose = false)
+
+    #Agent parameters are regression parameters
+    agent_parameters = Dict(
+    "regression_noise" => 0,
+    "regression_intercept" => 0,
+    "regression_beta_surprise" => 0,
+    "regression_beta_expected_uncertainty" => 0,
+    "regression_beta_unexpected_uncertainty" => 0,
+    "regression_beta_post_error" => 0,
+    "regression_beta_post_reversal" => 0
+    )
+
+    #Create agent
+    agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
+
+    return agent
 end

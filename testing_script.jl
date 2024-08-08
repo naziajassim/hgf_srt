@@ -38,8 +38,34 @@ agent_parameters = Dict(
     "regression_beta_surprise" => 0.1,
     "regression_beta_expected_uncertainty" => 0.1,
     "regression_beta_unexpected_uncertainty" => 0.1,
-    "regression_beta_post_error" => 0.1
+    "regression_beta_post_error" => 0.1,
+    "regression_beta_post_reversal" => 0.1
 )
+
+agent = create_agent();
+
+give_inputs!(agent, inputs)
+
+get_surprise(agent.substruct, "u1")
+
+
+
+
+node = agent.substruct.all_nodes["u2"]
+parent = node.edges.observation_parents[1]
+
+parent.states.prediction
+
+get_surprise(agent)
+
+
+surprise = sum(-log.(exp.(log.(parent.states.prediction) .* parent.states.posterior)))
+
+
+node.states.input_value
+
+node.history.input_value
+
 
 #Create agent
 agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
@@ -63,7 +89,9 @@ reset!(agent)
 data = CSV.read("data/singlesub_sample_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
 
 #Set up inputs, one column per category from, the value is category_to
-inputs = Array(data[!, [Symbol("Stimt-1"),:Stimt, :post_error]]);
+inputs = Array(data[!, [Symbol("Stimt-1"),:Stimt]]);
+
+inputs = hcat(inputs, Int64.(zeros(size(inputs))))
 
 #Give inputs and simulate actions
 reset!(agent)
