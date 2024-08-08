@@ -29,7 +29,6 @@ addprocs(n_cores, exeflags="--project=.")
 end
 
 
-
 ######## READ DATA ######
 #Read data
 data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
@@ -37,14 +36,14 @@ data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missi
 if subset
     #Subset the data for testing
     filter!(row -> row.SID in [1003, 1047], data);
-    #Add a fake post_error column
-    #data[!,:post_error] = Int64.(ones(nrow(data)));
+    #Add a fake post_reversal column
+    data[!,:post_reversal] = Int64.(ones(nrow(data)));
 end
 
 ######## FIT TO DATA ######
 priors = Dict(
     "xprob_volatility" => Normal(-3, 1),            # unchanged
-    "regression_noise" => truncated(Normal(exp(-3), .5), lower = 0), # unchanged- throws out errors if noise is negative
+    "regression_noise" => truncated(Normal(exp(-3), .5), lower = 0), # σ
     "regression_intercept" => Normal(log(500), 1.7),  # β0 
     "regression_beta_surprise" => Normal(0,2),            # β1
     "regression_beta_expected_uncertainty" => Normal(0,2), # β2
