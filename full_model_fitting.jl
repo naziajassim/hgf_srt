@@ -24,27 +24,8 @@ addprocs(n_cores, exeflags="--project=.")
     #Create the action model
     include("custom_action_model.jl")
 
-    #Initialize hgf
-    config = Dict(
-    "n_categories_from" => 4,
-    "n_categories_to" => 4,
-    "include_volatility_parent" => false,
-    )
-    hgf = premade_hgf("categorical_state_transitions", config)
-
-    #Agent parameters are regression parameters
-    agent_parameters = Dict(
-    "regression_noise" => 0.1,
-    "regression_intercept" => 0.5,
-    "regression_beta_surprise" => 0.1,
-    "regression_beta_expected_uncertainty" => 0.1,
-    "regression_beta_unexpected_uncertainty" => 0.1,
-    "regression_beta_post_error" => 0.1,
-    "regression_beta_post_reversal" => 0.1
-    )
-
-    #Create agent
-    agent = init_agent(reaction_time_action, substruct = hgf, parameters = agent_parameters);
+    #Create HGF agent
+    agent = create_agent();
 end
 
 
