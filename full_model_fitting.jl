@@ -61,7 +61,7 @@ results = fit_model(
         input_cols = [Symbol("Stimt-1"), :Stimt, :post_error, :post_reversal],
         action_cols = [:log_RT],
         n_cores = n_cores,
-        n_iterations = 100, #2000
+        n_iterations = 100, #1000
         n_chains = 2, #4
     )
 
