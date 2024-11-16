@@ -1,3 +1,5 @@
+using LogExpFunctions
+
 ######## CREATE ACTION MODEL ########
 function reaction_time_action(agent::Agent, input::Any)
 
@@ -5,6 +7,9 @@ function reaction_time_action(agent::Agent, input::Any)
 
     #Unpack the input into the observed_category, whether it's a post-error trial, and whether it's post-reversal
     category_from, category_to, post_error_trial, post_reversal = input
+
+    #Change to integers
+    category_from, category_to = Int64(category_from), Int64(category_to)
 
     #Create a vector of missing
     hgf_input = Vector{Union{Missing, Real}}(missing, 4)

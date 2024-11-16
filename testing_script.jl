@@ -1,14 +1,13 @@
-### PETER:
-# NEED TO HAVE
-# Check get_surprise for categorical inputs
+###PETER: Run th
+# - fix one of the uncertainties and run again
 
-# NICE TO HAVE
-# Fix Categorical HGF pretty print
-# ActionModels -> give inputs as tuples
-# Parallelization
 
-### FUTURE: MODEL THE BREAK ###
-#      - give a missing input with a time distane, make the time distance a parameter #
+
+
+
+
+
+
 
 ## READ PACKAGES ##
 using HierarchicalGaussianFiltering
