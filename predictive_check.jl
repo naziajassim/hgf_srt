@@ -75,3 +75,24 @@ end
 
 #Save the output data
 save_object("results/post_hoc/posterior_predictive.jld2", output_data)
+
+
+@showprogress for (ID, actions) in output_data
+    
+end
+
+
+
+# Initialize an empty DataFrame with the specified columns
+results_df = DataFrame(ID = Int[], trial = Int[], log_RT = Float64[])
+
+@showprogress for (ID, actions) in output_data
+    medians = median(actions, dims=2)
+    n_trials = size(medians, 1)
+    for trial in 1:n_trials
+        push!(results_df, (ID, trial, medians[trial]))
+    end
+end
+# Write the results_df to a CSV file
+CSV.write("results/post_hoc/predictive_check_medians.csv", results_df)
+
