@@ -12,7 +12,7 @@ include("custom_action_model.jl")
 output_data = Dict()
 
 #Load original data
-data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame)
+data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
 
 #Set parameter names
 param_names = [
@@ -76,12 +76,7 @@ end
 #Save the output data
 save_object("results/post_hoc/posterior_predictive.jld2", output_data)
 
-
-@showprogress for (ID, actions) in output_data
-    
-end
-
-
+output_data = load_object("results/post_hoc/posterior_predictive.jld2")
 
 # Initialize an empty DataFrame with the specified columns
 results_df = DataFrame(ID = Int[], trial = Int[], log_RT = Float64[])
@@ -96,3 +91,36 @@ end
 # Write the results_df to a CSV file
 CSV.write("results/post_hoc/predictive_check_medians.csv", results_df)
 
+
+
+
+
+simulated_data = CSV.read("results/post_hoc/predictive_check_medians.csv", DataFrame)
+
+
+# Plot the log_RTs of each participant in a single plot
+@df simulated_data plot(:trial, :log_RT, group = :ID, 
+    xlabel = "Trial", ylabel = "log_RT", 
+    title = "log_RTs of each participant")
+
+
+@df data plot(:Trial, :log_RT, group = :SID, 
+    xlabel = "Trial", ylabel = "log_RT", 
+    title = "log_RTs of each participant")
+
+# Calculate the mean log_RT across participants for each trial
+sim_mean_log_RT_across_trials = combine(groupby(dropmissing(simulated_data), :trial), 
+    :log_RT => mean => :mean_log_RT,
+    :log_RT => std => :std_log_RT)
+
+real_mean_log_RT_across_trials = combine(groupby(dropmissing(data), [:Session, :Block, :Trial]), 
+    :log_RT => mean => :mean_log_RT,
+    :log_RT => std => :std_log_RT)
+
+
+plot(sim_mean_log_RT_across_trials[:, :mean_log_RT])
+plot(sim_mean_log_RT_across_trials[:, :mean_log_RT], ribbon = sim_mean_log_RT_across_trials[:, :std_log_RT])
+
+
+plot(real_mean_log_RT_across_trials[:, :mean_log_RT])
+plot(real_mean_log_RT_across_trials[:, :mean_log_RT], ribbon = real_mean_log_RT_across_trials[:, :std_log_RT])
