@@ -1,62 +1,65 @@
 #Activate posthoc environmemt
-using Pkg; Pkg.activate("post_hoc_analysis"); #Pkg.instantiate()
+using Pkg; Pkg.activate("post_hoc_analysis"); Pkg.instantiate();
 
-#Load packages
-using ActionModels, HierarchicalGaussianFiltering
-using CSV, DataFrames, JLD2
+using ProgressMeter
 using Distributed
-#Get script for creating agent
-include("custom_action_model.jl")
+
+addprocs(2)
+
+@everywhere begin
+    #Load packages
+    using ActionModels, HierarchicalGaussianFiltering
+    using CSV, DataFrames, JLD2
+    #Get script for creating agent
+    include("custom_action_model.jl")
 
 
-###### FIND THE QUANTILES OF THE POSTERIORS ######
-#Set parameter names
-param_names = [
-    :xprob_volatility,
-    :regression_noise,
-    :regression_intercept,
-    :regression_beta_unexpected_uncertainty,
-    :regression_beta_expected_uncertainty,
-    :regression_beta_post_error,
-    :regression_beta_surprise,
-    :regression_beta_post_reversal
-]
+    ###### FIND THE QUANTILES OF THE POSTERIORS ######
+    #Set parameter names
+    param_names = [
+        :xprob_volatility,
+        :regression_noise,
+        :regression_intercept,
+        :regression_beta_unexpected_uncertainty,
+        :regression_beta_expected_uncertainty,
+        :regression_beta_post_error,
+        :regression_beta_surprise,
+        :regression_beta_post_reversal
+    ]
 
 
-posteriors = CSV.read("results/hgf_posteriors_all_participants.csv", DataFrame)
+    posteriors = CSV.read("results/hgf_posteriors_all_participants.csv", DataFrame)
 
-# Create a DataFrame to store quantiles for each parameter
-quantiles_df = DataFrame(param = String[], q0 = Float64[], q25 = Float64[], q50 = Float64[], q75 = Float64[], q100 = Float64[])
+    # Create a DataFrame to store quantiles for each parameter
+    quantiles_df = DataFrame(param = String[], q0 = Float64[], q25 = Float64[], q50 = Float64[], q75 = Float64[], q100 = Float64[])
 
-# Calculate quantiles for each parameter and add to the DataFrame
-for param in param_names
-    param_quantiles = quantile(posteriors[posteriors.parameters .== String(param), :mean], [0, 0.25, 0.5, 0.75, 1])
-    push!(quantiles_df, (String(param), param_quantiles...))
+    # Calculate quantiles for each parameter and add to the DataFrame
+    for param in param_names
+        param_quantiles = quantile(posteriors[posteriors.parameters .== String(param), :mean], [0, 0.25, 0.5, 0.75, 1])
+        push!(quantiles_df, (String(param), param_quantiles...))
+    end
+
+    # Display the DataFrame
+    quantiles_df
+
+    ### PREP THE RECOVERY ###
+    #Create agent
+    agent = create_agent()
+    #Load original data
+    data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
+    #Set ID's to take input sequences from, and volatilities ot recover
+    participants_to_use =     unique(data.SID)
+    volatilities_to_recover = collect(-9:1:-2)
+    #Number of iterations
+    n_iter = 1000
 end
-
-# Display the DataFrame
-quantiles_df
-
-
-### PREP THE RECOVERY ###
-
-#Set ID's to take input sequences from, and volatilities ot recover
-participants_to_use = [1003, 1006, 1010, 1015, 1023, 1031, 1038, 1046]
-volatilities_to_recover = collect(-9:1:-2)
-
-#Load original data
-data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame, missingstring="NA")
-#Create agent
-agent = create_agent()
-#Number of iterations
-n_iter = 1000
 
 ### RUN THE RECOVERY ###
 #Go through all combinations of participants and volatilities
-for (ID, gen_volatility) in Iterators.product(participants_to_use, volatilities_to_recover)
+@showprogress @distributed for (ID, gen_volatility) in collect(Iterators.product(participants_to_use, volatilities_to_recover))
 
     #Create filename
-    filename = "results/recovery_results/inputs_$(ID)_genvol_$(gen_volatility)_iter_$n_iter.jld2"
+    filename = "results/recovery_results/ID$(ID)_vol_$(gen_volatility)_iter_$n_iter.jld2"
 
     # Check if the file already exists
     if isfile(filename)
@@ -100,8 +103,9 @@ for (ID, gen_volatility) in Iterators.product(participants_to_use, volatilities_
         priors,
         inputs,
         simulated_actions,
+        verbose = false,
     )
-    fitted_model = fit_model(model, n_iterations = n_iter, n_chains = 1)
+    fitted_model = fit_model(model, n_iterations = n_iter, n_chains = 1, progress = false)
 
     #Save the results
     save_object(filename, fitted_model.chains)
