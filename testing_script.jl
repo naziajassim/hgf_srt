@@ -4,6 +4,65 @@
 
 
 
+#using Pkg; Pkg.activate("post_hoc_analysis"); #Pkg.instantiate()
+using HierarchicalGaussianFiltering #For the HGF
+using ActionModels, LogExpFunctions #For model specification and fitting
+using StatsPlots #For plotting
+using CSV, DataFrames, JLD2 #For loading and saving data
+using Glob #For loading files
+using ProgressMeter
+#Create the action model
+include("custom_action_model.jl")
+
+
+
+posteriors = CSV.read("results/hgf_posteriors_all_participants.csv", DataFrame)
+
+#Set parameter names
+param_names = [
+    :xprob_volatility,
+    :regression_noise,
+    :regression_intercept,
+    :regression_beta_unexpected_uncertainty,
+    :regression_beta_expected_uncertainty,
+    :regression_beta_post_error,
+    :regression_beta_surprise,
+    :regression_beta_post_reversal
+]
+
+
+posteriors = CSV.read("results/hgf_posteriors_all_participants.csv", DataFrame)
+
+# Create a DataFrame to store quantiles for each parameter
+quantiles_df = DataFrame(param = String[], q0 = Float64[], q25 = Float64[], q50 = Float64[], q75 = Float64[], q100 = Float64[])
+
+# Calculate quantiles for each parameter and add to the DataFrame
+for param in param_names
+    param_quantiles = quantile(posteriors[posteriors.parameters .== String(param), :mean], [0, 0.25, 0.5, 0.75, 1])
+    push!(quantiles_df, (String(param), param_quantiles...))
+end
+
+# Display the DataFrame
+quantiles_df
+
+
+
+quantile(posteriors[posteriors.parameters .== String(param_names[1]), :mean], [0, 0.25, 0.5, 0.75, 1])
+
+
+density(posteriors[posteriors.parameters .== String(param_names[1]), :mean])
+
+
+
+#Load original data
+data = CSV.read("data/all_participants_data_for_hgf_clean.csv", DataFrame)
+
+
+
+#Get filenames
+filenames = glob("results/per_participant_posteriors/*.jld2")
+
+
 
 
 
