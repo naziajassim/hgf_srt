@@ -26,7 +26,7 @@ The workflow includes:
 * Agent creation helper: Provides a function to initialize an agent with the categorical HGF configured for 4 categories and regression parameters set to zero as defaults.
 
 Key functions:
-* reaction_time_action(agent, input): Takes an agent and trial input, updates the HGF, computes belief states, predicts log RT via regression, and returns a Normal action distribution.
+* reaction_time_action(agent, input): Takes an agent and trial input, updates the HGF, computes belief states, predicts log RT via regression, and returns a normal action distribution.
 * create_agent(): Instantiates the HGF and agent with default regression parameters, ready for simulation or fitting.
 
 Dependencies: LogExpFunctions.jl (for logistic and exponential computations)
@@ -44,7 +44,7 @@ The workflow includes:
 * Setup and package loading: Loads essential Julia packages for HGF modeling, action modeling, distributions, plotting, data I/O, and parallel processing.
 * Parallelization initialization: Configures multiple worker processes (n_cores) for efficient parallel fitting of participant-specific models.
 * Agent creation on all workers: Includes the custom_action_model.jl script and initializes the categorical HGF agent with regression parameters for RT prediction on every parallel worker.
-* Data loading and preprocessing: Imports behavioural data from a CSV file. Optionally subsets participants for testing and adds a dummy post_reversal column if needed.
+* Data loading and preprocessing: Imports behavioural data from a CSV file. Optionally subsets participants for testing, or for running in smaller subsets if computational resources limited. 
 * Prior specification: Defines informative priors for all model parameters including volatility, regression noise, intercept, and regression betas for surprise, expected/unexpected uncertainty, post-error, and post-reversal effects.
 * Model fitting: Fits the hierarchical Bayesian model to each participant's data separately using the fit_model function. Inputs specify trial transition columns and outcome RT column. The process runs in parallel with specified iterations and chains.
 * Cleanup and saving: Removes parallel workers after fitting and saves the fitting results to a .jld2 file for later analysis.
