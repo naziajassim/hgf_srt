@@ -1,4 +1,4 @@
-This repository contains modelling scripts for fitting the **categorical state-transition Hierarchical Gaussian Filter (HGF)** to a four-choice probabilistic serial reaction time reversal learning task.  
+This repository contains modelling scripts for fitting the **categorical state-transition Hierarchical Gaussian Filter (HGF)** to a four-choice probabilistic serial reaction time reversal learning task.  Details of the associated model-free analyses and posthoc analyses for this project can be found [here](https://github.com/naziajassim/computational_signatures_uncertainty).
 
 Please refer to the preprint for details about this project:
 
