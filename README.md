@@ -1,10 +1,8 @@
 This repository contains modelling scripts for fitting the **categorical state-transition Hierarchical Gaussian Filter (HGF)** to a four-choice probabilistic serial reaction time reversal learning task.  Details of the associated model-free analyses and posthoc analyses for this project can be found [here](https://github.com/naziajassim/computational_signatures_uncertainty).
 
-Please refer to the preprint for details about this project:
+Please refer to the publication for details about this project:
 
-> Neurochemical markers of uncertainty processing in humans
-Nazia Jassim, Peter Thestrup Waade, Owen Parsons, Frederike H Petzschner, Caterina Rua, Christopher T Rodgers, Simon Baron-Cohen, John Suckling, Christoph Mathys, Rebecca P Lawson
-bioRxiv 2025.02.19.639013; doi: https://doi.org/10.1101/2025.02.19.639013
+> Jassim, N., Waade, P.T., Parsons, O., Petzschner, F.P., Rua, C., Rodgers, C.T., Baron-Cohen, S., Suckling, J., Mathys, C., Lawson, R.P. (2025). Computational signatures of uncertainty are reflected in motor cortex excitatory neurochemistry. Nature Communications . doi.org/10.1038/s41467-025-64702-6
 
 Please refer the documentation for the Julia implementation of the generalised HGF and for details about installation and use of the [Hierarchical Gaussian Filtering package](https://ilabcode.github.io/HierarchicalGaussianFiltering.jl/)
 
